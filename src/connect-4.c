@@ -5,13 +5,15 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 
+#define FPS 60
+
 #define EMPTY_TILE "src/images/empty-tile.png"
 #define RED_TILE "src/images/red-tile.png"
 #define YELLOW_TILE "src/images/yellow-tile.png"
 
-#define SCRN_WIDTH 700
-#define SCRN_HEIGHT 700
 #define TILE_SIZE 100
+#define SCRN_WIDTH (TILE_SIZE*WIDTH)
+#define SCRN_HEIGHT (TILE_SIZE*(HEIGHT + 1))
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -22,6 +24,10 @@ SDL_Texture *emptyTile, *redTile, *yellowTile;
 SDL_Rect bckgrndRect = {0, 0, SCRN_WIDTH, SCRN_HEIGHT};
 
 TTF_Font* Hyperspace; 
+
+board_t game;
+//current column selected by player
+uint8_t currColumn = 3; 
 
 int userInput(){
     SDL_Event event;
@@ -48,23 +54,34 @@ int userInput(){
 }
 
 void updateGame(){
-    if(keysPressed[SDL_SCANCODE_W] || keysPressed[SDL_SCANCODE_UP]){
-   
-    } else {
-   
-    }
+    static bool justMoved = false;
 
     if(keysPressed[SDL_SCANCODE_A] || keysPressed[SDL_SCANCODE_LEFT]){
+        if(!justMoved && currColumn > 0) currColumn--;
+        justMoved = true;
+    } else if(keysPressed[SDL_SCANCODE_D] || keysPressed[SDL_SCANCODE_RIGHT]){
+        if(!justMoved && currColumn < WIDTH - 1) currColumn++;
+        justMoved = true;
+    } else if(keysPressed[SDL_SCANCODE_SPACE] || keysPressed[SDL_SCANCODE_S] 
+            || keysPressed[SDL_SCANCODE_DOWN]){
+        if(!justMoved && addChip(&game, currColumn)) switchPlayer(&game);
+        justMoved = true;
+    } else {
+        justMoved = false;
     }
 
-    if(keysPressed[SDL_SCANCODE_D] || keysPressed[SDL_SCANCODE_RIGHT]){
-    }
+}
 
-    if(keysPressed[SDL_SCANCODE_SPACE]){
+void drawSelection(){
+    SDL_Rect tile = {currColumn * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE};
+    if(game.currPlayer == 1){
+        SDL_RenderCopy(renderer, redTile, NULL, &tile);
+    } else {
+        SDL_RenderCopy(renderer, yellowTile, NULL, &tile);
     }
 }
 
-void drawBoard(board_t game){
+void drawBoard(){
     int i, j;
     for(i = 0; i < WIDTH; i++){
         for( j = 0; j < HEIGHT; j++){
@@ -100,25 +117,27 @@ void render(){
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
     //drawBackground();
+    drawSelection();
+    drawBoard();
+
     SDL_RenderPresent(renderer);
 }
 
 void gameLoop(){
-	/*uint64_t frameStart;  
+	uint64_t frameStart;  
     uint64_t frameTime;
     uint64_t frameDelay = 1000 / FPS;
 
-	while(1){
+	while(userInput()){
         frameStart = SDL_GetTicks64();
        
-        userInput();
         updateGame();
 		render();
 
         frameTime = SDL_GetTicks64() - frameStart;
 
         if(frameDelay > frameTime) SDL_Delay(frameDelay - frameTime);
-	}	*/
+	}
 }
 
 int startScreen(){
@@ -153,24 +172,10 @@ void endScreen(){
 }
 
 int main(int argc, char *argv[]){
-    board_t game;
-    init_board(&game);
-    addChip(&game, 4);
-    switchPlayer(&game);
-    addChip(&game, 4);
-    switchPlayer(&game);
-    addChip(&game, 4);
-    switchPlayer(&game);
-    addChip(&game, 4);
-    switchPlayer(&game);
-    addChip(&game, 2);
-
     startScreen();
-    drawBoard(game);
 
-    SDL_RenderPresent(renderer);
-
-    while(userInput()){}
+    init_board(&game);
+    gameLoop();
 
     endScreen();
 
