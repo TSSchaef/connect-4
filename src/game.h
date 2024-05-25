@@ -7,20 +7,19 @@
 #define WIDTH 7
 #define HEIGHT 6
 
+#define BOTTOM_LEFT UINT64_C(1) 
+//game.position & (BOTTOM_LEFT << j (j + (i * (HEIGHT + 1))))
+//game.mask & (BOTTOM_LEFT << (j + (i * (HEIGHT + 1))))
+
 typedef struct board{
-    uint8_t board[WIDTH][HEIGHT];
-    uint8_t currPlayer;
+    uint64_t position;
+    uint64_t mask;
+    int moves;    
 } board_t;
 
-//initialize as empty
 void init_board(board_t *game);
-board_t copy_board(board_t toCopy);
-//switches current player - returns current player
-int switchPlayer(board_t *game);
-//does nothing if chip cannot be added
-bool addChip(board_t *game, uint8_t column);
-//returns player that won if a connect 4 was completed
-//column is the last column where a chip was played
-uint8_t gameOver(board_t game, uint8_t column);
+bool canAdd(board_t *game, uint8_t column);
+void addChip(board_t *game, uint8_t column);
+bool gameOver(board_t *game);
 
 #endif

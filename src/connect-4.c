@@ -64,7 +64,7 @@ void updateGame(){
         justMoved = true;
     } else if(keysPressed[SDL_SCANCODE_SPACE] || keysPressed[SDL_SCANCODE_S] 
             || keysPressed[SDL_SCANCODE_DOWN]){
-        if(!justMoved && addChip(&game, currColumn)) switchPlayer(&game);
+        if(!justMoved && canAdd(&game, currColumn)) addChip(&game, currColumn);
         justMoved = true;
     } else {
         justMoved = false;
@@ -74,7 +74,7 @@ void updateGame(){
 
 void drawSelection(){
     SDL_Rect tile = {currColumn * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE};
-    if(game.currPlayer == 1){
+    if(game.moves % 2 == 0){
         SDL_RenderCopy(renderer, redTile, NULL, &tile);
     } else {
         SDL_RenderCopy(renderer, yellowTile, NULL, &tile);
@@ -86,12 +86,12 @@ void drawBoard(){
     for(i = 0; i < WIDTH; i++){
         for( j = 0; j < HEIGHT; j++){
             SDL_Rect tile = {i * TILE_SIZE, SCRN_HEIGHT - (j * TILE_SIZE) - TILE_SIZE, TILE_SIZE, TILE_SIZE}; 
-            if(game.board[i][j] == 0){
-                SDL_RenderCopy(renderer, emptyTile, NULL, &tile);
-            } else if(game.board[i][j] == 1){
-                SDL_RenderCopy(renderer, redTile, NULL, &tile);
+            if(game.position & (BOTTOM_LEFT << (j + (i * (HEIGHT + 1))))){
+                SDL_RenderCopy(renderer, (game.moves % 2 == 0) ? redTile : yellowTile, NULL, &tile);
+            } else if(game.mask & (BOTTOM_LEFT << (j + (i * (HEIGHT + 1))))){
+                SDL_RenderCopy(renderer, (game.moves % 2 == 1) ? redTile : yellowTile, NULL, &tile);
             } else {
-                SDL_RenderCopy(renderer, yellowTile, NULL, &tile);
+                SDL_RenderCopy(renderer, emptyTile, NULL, &tile);
             }
         }
     }
@@ -133,6 +133,17 @@ void gameLoop(){
        
         updateGame();
 		render();
+
+        if(gameOver(&game)){
+            if(game.moves % 2 == 0){
+                printf("Yellow");
+            } else {
+                printf("Red");
+            }
+            printf(" won!\n");
+            SDL_Delay(2500);
+            break;
+        }
 
         frameTime = SDL_GetTicks64() - frameStart;
 

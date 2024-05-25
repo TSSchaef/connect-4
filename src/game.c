@@ -1,43 +1,48 @@
 #include "game.h"
 
+static uint64_t topmask(uint8_t column){
+    return (UINT64_C(1) << (HEIGHT - 1)) << column * (HEIGHT + 1);
+}
+
+static uint64_t bottommask(uint8_t column){
+    return UINT64_C(1) << column * (HEIGHT + 1);
+}
+
 void init_board(board_t *game){
-    int i, j;
-    for(i = 0; i < WIDTH; i++){
-        for(j = 0; j < HEIGHT; j++){
-            game->board[i][j] = 0;
-        }
-    }
-    game->currPlayer = 1;
+    game->position = 0;
+    game->mask = 0;
+    game->moves = 0;
 }
 
-board_t copy_board(board_t toCopy){
-    int i, j;
-    board_t this;
-    for(i = 0; i < WIDTH; i++){
-        for(j = 0; j < HEIGHT; j++){
-            this.board[i][j] = toCopy.board[i][j];
-        }
-    }
-    this.currPlayer = toCopy.currPlayer;
-    return this;
+bool canAdd(board_t *game, uint8_t column){
+    if(column >= WIDTH) return false;
+    return (game->mask & topmask(column)) == 0;
 }
 
-int switchPlayer(board_t *game){
-   game->currPlayer = (game->currPlayer == 1) ? 2 : 1;
-   return game->currPlayer;
+void addChip(board_t *game, uint8_t column){
+    game->position ^= game->mask;
+    game->mask |= game->mask + bottommask(column);
+    game->moves++;
 }
 
-bool addChip(board_t *game, uint8_t column){
-    uint8_t i;
-    for(i = 0; i < HEIGHT; i++){
-        if(game->board[column][i] == 0){
-            game->board[column][i] = game->currPlayer;
-            return true;
-        }
-    }
+bool gameOver(board_t *game){
+    uint64_t pos = game->position ^ game->mask;
+
+    //horizontal
+    uint64_t m = pos & (pos >> (HEIGHT + 1));
+    if(m & (m >> (2*(HEIGHT + 1)))) return true;
+
+    //diagonal upwards
+    m = pos & (pos >> HEIGHT);
+    if(m & (m >> (2 * HEIGHT))) return true;
+
+    //diagonal downwards
+    m = pos & (pos >> (HEIGHT + 2));
+    if(m & (m >> (2 * (HEIGHT + 2)))) return true;
+
+    //vertical
+    m = pos & (pos >> 1);
+    if(m & (m >> 2)) return true;
+
     return false;
-}
-
-uint8_t gameOver(board_t game, uint8_t column){
-    return 0;
 }
