@@ -1,4 +1,5 @@
 #include "game.h"
+#include "solver.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
@@ -64,7 +65,14 @@ void updateGame(){
         justMoved = true;
     } else if(keysPressed[SDL_SCANCODE_SPACE] || keysPressed[SDL_SCANCODE_S] 
             || keysPressed[SDL_SCANCODE_DOWN]){
-        if(!justMoved && canAdd(&game, currColumn)) addChip(&game, currColumn);
+        
+        if(!justMoved && canAdd(&game, currColumn)){
+            addChip(&game, currColumn);
+            if(!gameOver(&game)){
+                addChip(&game, computerInput(&game));
+            }
+        }
+
         justMoved = true;
     } else {
         justMoved = false;
