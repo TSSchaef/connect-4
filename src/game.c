@@ -22,7 +22,7 @@ void copy(board_t *copy, board_t *game){
 
 bool canAdd(board_t *game, uint8_t column){
     if(column >= WIDTH) return false;
-    return (game->mask & topmask(column)) == 0;
+    return !(game->mask & topmask(column));
 }
 
 void addChip(board_t *game, uint8_t column){
