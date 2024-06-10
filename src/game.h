@@ -18,6 +18,7 @@ typedef struct board{
 } board_t;
 
 void init_board(board_t *game);
+void copy(board_t * copy, board_t *game);
 bool canAdd(board_t *game, uint8_t column);
 void addChip(board_t *game, uint8_t column);
 bool gameOver(board_t *game);

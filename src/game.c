@@ -14,6 +14,12 @@ void init_board(board_t *game){
     game->moves = 0;
 }
 
+void copy(board_t *copy, board_t *game){
+   copy->position = game->position;
+   copy->mask = game->mask;
+   copy->moves = game->moves;
+}
+
 bool canAdd(board_t *game, uint8_t column){
     if(column >= WIDTH) return false;
     return (game->mask & topmask(column)) == 0;

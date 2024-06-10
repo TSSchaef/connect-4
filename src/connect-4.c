@@ -69,7 +69,7 @@ void updateGame(){
         if(!justMoved && canAdd(&game, currColumn)){
             addChip(&game, currColumn);
             if(!gameOver(&game)){
-                addChip(&game, computerInput(&game));
+                addChip(&game, computerInput(game));
             }
         }
 
