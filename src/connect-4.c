@@ -151,7 +151,7 @@ void gameLoop(){
                 printf("Red");
             }
             printf(" won!\n");
-            SDL_Delay(2500);
+            SDL_Delay(5000);
             break;
         }
 

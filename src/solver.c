@@ -1,8 +1,8 @@
 #include "solver.h"
 #include <stdio.h>
 
-#define ALPHA -1
-#define BETA 1
+#define ALPHA -5
+#define BETA 5
 #define DEPTH 14
 
 uint8_t bestMove;
@@ -20,18 +20,14 @@ int negamax(board_t *game, int alpha, int beta, int depth){
             if(depth == DEPTH){
                 bestMove = i;
             }
-            return (WIDTH * HEIGHT) - (game->moves / 2);
+            return ((WIDTH * HEIGHT) + 1 - (game->moves / 2));
         }
     }
     
-    int max = (WIDTH * HEIGHT) - (game->moves / 2);
+    int max = (WIDTH * HEIGHT) - 1 - (game->moves / 2);
     if(beta > max){
         beta = max;
         if(alpha >= beta) return beta;
-    }
-
-    if(depth == 0){ 
-       return 0; 
     }
 
     for(i = 0; i < WIDTH; i++){
@@ -41,13 +37,18 @@ int negamax(board_t *game, int alpha, int beta, int depth){
             copy(&game2, game);
 
             addChip(&game2, i);
-            int score = -negamax(&game2, -beta, -alpha, depth - 1);
+            int score;
+            if(depth > 0){
+                score = -negamax(&game2, -beta, -alpha, depth - 1);
+            } else {
+                score = 0;
+            }
             if(score >= beta){
                 if(depth == DEPTH){
                     bestMove = i;
                 }
                 return score;
-            }
+            } 
             if(score > alpha) {
                 if(depth == DEPTH){
                     bestMove = i;
