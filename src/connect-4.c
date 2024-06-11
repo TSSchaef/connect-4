@@ -68,8 +68,10 @@ void updateGame(){
         
         if(!justMoved && canAdd(&game, currColumn)){
             addChip(&game, currColumn);
-            if(!gameOver(&game)){
-                addChip(&game, computerInput(game));
+            if(!game.gameOver){
+                int input = computerInput(game);
+                printf("%d\n", input);
+                addChip(&game, input); 
             }
         }
 
@@ -142,13 +144,19 @@ void gameLoop(){
         updateGame();
 		render();
 
-        if(gameOver(&game)){
+        if(game.gameOver){
             if(game.moves % 2 == 0){
                 printf("Yellow");
             } else {
                 printf("Red");
             }
             printf(" won!\n");
+            SDL_Delay(2500);
+            break;
+        }
+
+        if(game.moves == WIDTH * HEIGHT){
+            printf("Tie game!\n");
             SDL_Delay(2500);
             break;
         }

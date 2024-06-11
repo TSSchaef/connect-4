@@ -15,12 +15,14 @@ typedef struct board{
     uint64_t position;
     uint64_t mask;
     int moves;    
+    bool gameOver;
 } board_t;
 
 void init_board(board_t *game);
 void copy(board_t * copy, board_t *game);
 bool canAdd(board_t *game, uint8_t column);
 void addChip(board_t *game, uint8_t column);
-bool gameOver(board_t *game);
+bool isWinningMove(board_t *game, uint8_t col);
+bool alignment(uint64_t pos);
 
 #endif
