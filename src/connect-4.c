@@ -202,6 +202,7 @@ int main(int argc, char *argv[]){
     startScreen();
 
     init_board(&game);
+    init_opponent();
     gameLoop();
 
     endScreen();

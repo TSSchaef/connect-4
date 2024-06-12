@@ -12,6 +12,10 @@ static uint64_t columnmask(uint8_t column){
     return ((UINT64_C(1) << HEIGHT) - 1) << column * (HEIGHT + 1);
 }
 
+uint64_t key(board_t game){
+    return game.position + game.mask;
+}
+
 void init_board(board_t *game){
     game->position = 0;
     game->mask = 0;

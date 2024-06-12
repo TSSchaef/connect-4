@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "table.h" 
 
 #define WIDTH 7
 #define HEIGHT 6
@@ -24,5 +25,6 @@ bool canAdd(board_t *game, uint8_t column);
 void addChip(board_t *game, uint8_t column);
 bool isWinningMove(board_t *game, uint8_t col);
 bool alignment(uint64_t pos);
+uint64_t key(board_t game);
 
 #endif
