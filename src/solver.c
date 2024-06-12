@@ -3,7 +3,9 @@
 
 #define ALPHA -1
 #define BETA 1
-#define DEPTH 17
+#define DEPTH 20
+
+uint8_t evalOrder[WIDTH];
 
 uint8_t bestMove;
 uint64_t numEvaluated;
@@ -32,12 +34,12 @@ int negamax(board_t *game, int alpha, int beta, int depth){
     
     int bestScore = -(WIDTH * HEIGHT);
     for(i = 0; i < WIDTH; i++){
-        if(canAdd(game, i)){
+        if(canAdd(game, evalOrder[i])){
             //if(bestMove > WIDTH) bestMove = i;
             board_t game2;
             copy(&game2, game);
 
-            addChip(&game2, i);
+            addChip(&game2, evalOrder[i]);
             int8_t score;
             if(depth > 0){
                 score = get(key(game2));
@@ -50,18 +52,18 @@ int negamax(board_t *game, int alpha, int beta, int depth){
             }
             if(score >= beta){
                 if(depth == DEPTH){
-                    bestMove = i;
+                    bestMove = evalOrder[i];
                 }
                 return score;
             } 
             if(score > alpha) {
                 if(depth == DEPTH){
-                    bestMove = i;
+                    bestMove = evalOrder[i];
                 }
                 alpha = score;
             } else if(score > bestScore && depth == DEPTH && bestMove > WIDTH){
                 bestScore = score;
-                bestMove = i;
+                bestMove = evalOrder[i];
             }
         }
     }
@@ -78,4 +80,8 @@ int computerInput(board_t game){
 
 void init_opponent(){
     init_table();
+    int i;
+    for(i = 0; i < WIDTH; i++){
+        evalOrder[i] = WIDTH / 2 + (1 - 2*(i % 2))*(i + 1) / 2;
+    }
 }
