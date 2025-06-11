@@ -1,2 +1,1 @@
-(In progress) Implements a connect-4 game with options for 2 player 
-or 1 player games. 
+(In progress) Implements a connect-4 game for the player to compete against a computer opponent. Uses Min-Max tree with Alpha Beta Pruning and a Transposition Table.
