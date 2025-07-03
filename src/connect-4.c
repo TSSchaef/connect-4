@@ -6,6 +6,10 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #define FPS 60
 
 #define EMPTY_TILE "src/images/empty-tile.png"
@@ -27,25 +31,26 @@ SDL_Rect bckgrndRect = {0, 0, SCRN_WIDTH, SCRN_HEIGHT};
 TTF_Font* Hyperspace; 
 
 board_t game;
-//current column selected by player
 uint8_t currColumn = 3; 
+
+int shouldQuit = 0;
+uint32_t gameOverTicks = 0;
+uint32_t tieGameTicks = 0;
 
 int userInput(){
     SDL_Event event;
-
     while(SDL_PollEvent(&event)){
         switch (event.type){
             case SDL_QUIT:
+                shouldQuit = 1;
                 return 0;
-                break;
-
             case SDL_KEYDOWN:
                 if(event.key.keysym.scancode == SDL_SCANCODE_Q){
+                    shouldQuit = 1;
                     return 0;
                 }
                 keysPressed[event.key.keysym.scancode] = true;
             break;
-
             case SDL_KEYUP:
                 keysPressed[event.key.keysym.scancode] = false;
             break;
@@ -56,7 +61,6 @@ int userInput(){
 
 void updateGame(){
     static bool justMoved = false;
-
     if(keysPressed[SDL_SCANCODE_A] || keysPressed[SDL_SCANCODE_LEFT]){
         if(!justMoved && currColumn > 0) currColumn--;
         justMoved = true;
@@ -65,29 +69,29 @@ void updateGame(){
         justMoved = true;
     } else if(keysPressed[SDL_SCANCODE_SPACE] || keysPressed[SDL_SCANCODE_S] 
             || keysPressed[SDL_SCANCODE_DOWN]){
-        
         if(!justMoved && canAdd(&game, currColumn)){
             addChip(&game, currColumn);
             if(!game.gameOver){
                 int input = computerInput(game);
-                printf("%d\n", input);
                 addChip(&game, input); 
             }
         }
-
         justMoved = true;
     } else {
         justMoved = false;
     }
-
 }
 
 void drawSelection(){
     SDL_Rect tile = {currColumn * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE};
     if(game.moves % 2 == 0){
-        SDL_RenderCopy(renderer, redTile, NULL, &tile);
+        if (SDL_RenderCopy(renderer, redTile, NULL, &tile) != 0) {
+            printf("SDL_RenderCopy (drawSelection, redTile) error: %s\n", SDL_GetError());
+        }
     } else {
-        SDL_RenderCopy(renderer, yellowTile, NULL, &tile);
+        if (SDL_RenderCopy(renderer, yellowTile, NULL, &tile) != 0) {
+            printf("SDL_RenderCopy (drawSelection, yellowTile) error: %s\n", SDL_GetError());
+        }
     }
 }
 
@@ -97,115 +101,140 @@ void drawBoard(){
         for( j = 0; j < HEIGHT; j++){
             SDL_Rect tile = {i * TILE_SIZE, SCRN_HEIGHT - (j * TILE_SIZE) - TILE_SIZE, TILE_SIZE, TILE_SIZE}; 
             if(game.position & (BOTTOM_LEFT << (j + (i * (HEIGHT + 1))))){
-                SDL_RenderCopy(renderer, (game.moves % 2 == 0) ? redTile : yellowTile, NULL, &tile);
+                if (SDL_RenderCopy(renderer, (game.moves % 2 == 0) ? redTile : yellowTile, NULL, &tile) != 0) {
+                    printf("SDL_RenderCopy (drawBoard, pos) error: %s\n", SDL_GetError());
+                }
             } else if(game.mask & (BOTTOM_LEFT << (j + (i * (HEIGHT + 1))))){
-                SDL_RenderCopy(renderer, (game.moves % 2 == 1) ? redTile : yellowTile, NULL, &tile);
+                if (SDL_RenderCopy(renderer, (game.moves % 2 == 1) ? redTile : yellowTile, NULL, &tile) != 0) {
+                    printf("SDL_RenderCopy (drawBoard, mask) error: %s\n", SDL_GetError());
+                }
             } else {
-                SDL_RenderCopy(renderer, emptyTile, NULL, &tile);
+                if (SDL_RenderCopy(renderer, emptyTile, NULL, &tile) != 0) {
+                    printf("SDL_RenderCopy (drawBoard, emptyTile) error: %s\n", SDL_GetError());
+                }
             }
         }
     }
 }
 
-/*void drawBackground(){
-    static uint64_t lastSwap = 0;
-    static bool swap = true;
-
-    if(SDL_GetTicks64() > lastSwap + BACKGROUND_FLICKER){
-        lastSwap = SDL_GetTicks64();
-        swap = !swap;
-    }
-
-    if(swap){
-        SDL_RenderCopy(renderer, bckgrnd1, NULL, &bckgrndRect);
-    } else {
-        SDL_RenderCopy(renderer, bckgrnd2, NULL, &bckgrndRect);
-    }
-}*/
-
 void render(){
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    SDL_RenderClear(renderer);
-    //drawBackground();
+    if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) != 0) {
+        printf("SDL_SetRenderDrawColor error: %s\n", SDL_GetError());
+    }
+    if (SDL_RenderClear(renderer) != 0) {
+        printf("SDL_RenderClear error: %s\n", SDL_GetError());
+    }
     drawSelection();
     drawBoard();
-
     SDL_RenderPresent(renderer);
 }
 
-void gameLoop(){
-	uint64_t frameStart;  
-    uint64_t frameTime;
-    uint64_t frameDelay = 1000 / FPS;
+// --- New: game loop frame function for Emscripten ---
+void gameLoopFrame(){
+    if (shouldQuit) {
+#ifdef __EMSCRIPTEN__
+        emscripten_cancel_main_loop();
+#endif
+        return;
+    }
 
-	while(userInput()){
-        frameStart = SDL_GetTicks64();
-       
+    // Only process input if game is not over
+    if (!game.gameOver && game.moves < WIDTH * HEIGHT) {
+        userInput();
         updateGame();
-		render();
-
-        if(game.gameOver){
-            if(game.moves % 2 == 0){
-                printf("Yellow");
-            } else {
-                printf("Red");
-            }
-            printf(" won!\n");
-            SDL_Delay(5000);
-            break;
+        render();
+    } else {
+        render();
+        // Show winner/tie for a few seconds, then quit
+        uint32_t now = SDL_GetTicks();
+        if(game.gameOver && !gameOverTicks) {
+            gameOverTicks = now;
+            printf("%s won!\n", (game.moves % 2 == 0) ? "Yellow" : "Red");
         }
-
-        if(game.moves == WIDTH * HEIGHT){
+        if(game.moves == WIDTH * HEIGHT && !tieGameTicks) {
+            tieGameTicks = now;
             printf("Tie game!\n");
-            SDL_Delay(2500);
-            break;
         }
-
-        frameTime = SDL_GetTicks64() - frameStart;
-
-        if(frameDelay > frameTime) SDL_Delay(frameDelay - frameTime);
-	}
+        if ((gameOverTicks && now - gameOverTicks > 5000) ||
+            (tieGameTicks && now - tieGameTicks > 2500)) {
+            shouldQuit = 1;
+#ifdef __EMSCRIPTEN__
+            emscripten_cancel_main_loop();
+#endif
+        }
+    }
 }
 
 int startScreen(){
-    if(SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-       return -1;
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
+        printf("SDL_Init error: %s\n", SDL_GetError());
+        return -1;
+    }
+    window = SDL_CreateWindow("Connect-4", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCRN_WIDTH, SCRN_HEIGHT, 0);
+    if (!window) {
+        printf("SDL_CreateWindow error: %s\n", SDL_GetError());
+        return -1;
+    }
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        printf("SDL_CreateRenderer error: %s\n", SDL_GetError());
+        return -1;
     }
 
-    window = SDL_CreateWindow("Connect-4", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCRN_WIDTH, SCRN_HEIGHT, 0);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
     emptyTile = IMG_LoadTexture(renderer, EMPTY_TILE);
+    if (!emptyTile) {
+        printf("IMG_LoadTexture (emptyTile) error: %s\n", IMG_GetError());
+    }
     redTile = IMG_LoadTexture(renderer, RED_TILE);
+    if (!redTile) {
+        printf("IMG_LoadTexture (redTile) error: %s\n", IMG_GetError());
+    }
     yellowTile = IMG_LoadTexture(renderer, YELLOW_TILE);
+    if (!yellowTile) {
+        printf("IMG_LoadTexture (yellowTile) error: %s\n", IMG_GetError());
+    }
 
-    TTF_Init();
-//    Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 24);
-    
+    if (TTF_Init() == -1) {
+        printf("TTF_Init error: %s\n", TTF_GetError());
+    }
+    //Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 24);
+    //if (!Hyperspace) {
+    //    printf("TTF_OpenFont error: %s\n", TTF_GetError());
+    //}
     return 0;
 }
 
 void endScreen(){
-//    TTF_CloseFont(Hyperspace);
+    //if (Hyperspace) TTF_CloseFont(Hyperspace);
     TTF_Quit();
 
-    SDL_DestroyTexture(emptyTile);
-    SDL_DestroyTexture(redTile);
-    SDL_DestroyTexture(yellowTile);
+    if (emptyTile) SDL_DestroyTexture(emptyTile);
+    if (redTile) SDL_DestroyTexture(redTile);
+    if (yellowTile) SDL_DestroyTexture(yellowTile);
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
     SDL_Quit();
 }
 
 int main(int argc, char *argv[]){
-    startScreen();
-
+    if (startScreen() != 0) {
+        printf("Failed to initialize, exiting\n");
+        return 1;
+    }
     init_board(&game);
     init_opponent();
-    gameLoop();
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(gameLoopFrame, 0, 1);
+#else
+    // desktop fallback: keep the old blocking loop for native
+    while(!shouldQuit) {
+        gameLoopFrame();
+        SDL_Delay(1000/FPS);
+    }
+#endif
 
     endScreen();
-
     return 0;
 }
