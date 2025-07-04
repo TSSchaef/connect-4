@@ -20,6 +20,9 @@
 #define SCRN_WIDTH (TILE_SIZE*WIDTH)
 #define SCRN_HEIGHT (TILE_SIZE*(HEIGHT + 1))
 
+typedef enum { STATE_PLAYING, STATE_GAMEOVER } GameState;
+GameState gameState = STATE_PLAYING;
+
 SDL_Window *window;
 SDL_Renderer *renderer;
 
@@ -37,7 +40,7 @@ int shouldQuit = 0;
 uint32_t gameOverTicks = 0;
 uint32_t tieGameTicks = 0;
 
-int userInput(){
+int userInput() {
     SDL_Event event;
     while(SDL_PollEvent(&event)){
         switch (event.type){
@@ -47,7 +50,19 @@ int userInput(){
             case SDL_KEYDOWN:
                 if(event.key.keysym.scancode == SDL_SCANCODE_Q){
                     shouldQuit = 1;
+#ifdef __EMSCRIPTEN__
+            emscripten_cancel_main_loop();
+#endif
                     return 0;
+                }
+                if (gameState == STATE_GAMEOVER && event.key.keysym.scancode == SDL_SCANCODE_R) {
+                    // Restart game
+                    init_board(&game);
+                    currColumn = 3;
+                    gameOverTicks = 0;
+                    tieGameTicks = 0;
+                    gameState = STATE_PLAYING;
+                    printf("Restarting game!\n");
                 }
                 keysPressed[event.key.keysym.scancode] = true;
             break;
@@ -126,6 +141,15 @@ void render(){
     }
     drawSelection();
     drawBoard();
+    if (gameState == STATE_GAMEOVER) {
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Surface *surface = TTF_RenderText_Solid(Hyperspace, "Press R to restart or Q to quit", white);
+        SDL_Texture *msg = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_Rect msgRect = {40, SCRN_HEIGHT/2, surface->w, surface->h};
+        SDL_RenderCopy(renderer, msg, NULL, &msgRect);
+        SDL_FreeSurface(surface);
+        SDL_DestroyTexture(msg);
+    }
     SDL_RenderPresent(renderer);
 }
 
@@ -143,7 +167,7 @@ void gameLoopFrame(){
         userInput();
         updateGame();
         render();
-    } else {
+    } else if(gameState == STATE_PLAYING){
         render();
         // Show winner/tie for a few seconds, then quit
         uint32_t now = SDL_GetTicks();
@@ -155,13 +179,10 @@ void gameLoopFrame(){
             tieGameTicks = now;
             printf("Tie game!\n");
         }
-        if ((gameOverTicks && now - gameOverTicks > 5000) ||
-            (tieGameTicks && now - tieGameTicks > 2500)) {
-            shouldQuit = 1;
-#ifdef __EMSCRIPTEN__
-            emscripten_cancel_main_loop();
-#endif
-        }
+    } else {
+        userInput();
+        updateGame();
+        render();
     }
 }
 
