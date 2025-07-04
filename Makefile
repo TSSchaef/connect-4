@@ -26,6 +26,7 @@ wasm: src/connect-4.c src/game.c src/solver.c src/table.c
 		-s EXPORTED_FUNCTIONS="['_main']" \
 		-s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','FS']" \
 		--preload-file src/images \
+		--preload-file src/Hyperspace.ttf \
 		-o connect-4.html
 
 .PHONY: clean

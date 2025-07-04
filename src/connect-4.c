@@ -142,13 +142,17 @@ void render(){
     drawSelection();
     drawBoard();
     if (gameState == STATE_GAMEOVER) {
-        SDL_Color white = {255, 255, 255, 255};
-        SDL_Surface *surface = TTF_RenderText_Solid(Hyperspace, "Press R to restart or Q to quit", white);
-        SDL_Texture *msg = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_Rect msgRect = {40, SCRN_HEIGHT/2, surface->w, surface->h};
-        SDL_RenderCopy(renderer, msg, NULL, &msgRect);
-        SDL_FreeSurface(surface);
-        SDL_DestroyTexture(msg);
+        if(Hyperspace){
+            SDL_Color white = {255, 255, 255, 255};
+            SDL_Surface *surface = TTF_RenderText_Solid(Hyperspace, "Press R to restart or Q to quit", white);
+            SDL_Texture *msg = SDL_CreateTextureFromSurface(renderer, surface);
+            SDL_Rect msgRect = {40, SCRN_HEIGHT/2, surface->w, surface->h};
+            SDL_RenderCopy(renderer, msg, NULL, &msgRect);
+            SDL_FreeSurface(surface);
+            SDL_DestroyTexture(msg);
+        } else {
+            fprintf(stderr, "Failed to load font, press R to restart");
+        }
     }
     SDL_RenderPresent(renderer);
 }
@@ -169,7 +173,8 @@ void gameLoopFrame(){
         render();
     } else if(gameState == STATE_PLAYING){
         render();
-        // Show winner/tie for a few seconds, then quit
+        // Set game state to game over, so we can process restart/quit input
+        gameState = STATE_GAMEOVER;
         uint32_t now = SDL_GetTicks();
         if(game.gameOver && !gameOverTicks) {
             gameOverTicks = now;
@@ -179,9 +184,9 @@ void gameLoopFrame(){
             tieGameTicks = now;
             printf("Tie game!\n");
         }
-    } else {
+    } else if(gameState == STATE_GAMEOVER) {
+        // Allow input for restart or quit
         userInput();
-        updateGame();
         render();
     }
 }
@@ -218,15 +223,15 @@ int startScreen(){
     if (TTF_Init() == -1) {
         printf("TTF_Init error: %s\n", TTF_GetError());
     }
-    //Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 24);
-    //if (!Hyperspace) {
-    //    printf("TTF_OpenFont error: %s\n", TTF_GetError());
-    //}
+    Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 24);
+    if (!Hyperspace) {
+        printf("TTF_OpenFont error: %s\n", TTF_GetError());
+    }
     return 0;
 }
 
 void endScreen(){
-    //if (Hyperspace) TTF_CloseFont(Hyperspace);
+    if (Hyperspace) TTF_CloseFont(Hyperspace);
     TTF_Quit();
 
     if (emptyTile) SDL_DestroyTexture(emptyTile);
