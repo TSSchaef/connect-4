@@ -186,14 +186,14 @@ void drawMenu() {
         snprintf(menuText, sizeof(menuText), "R to restart");
     } else {
         snprintf(menuText, sizeof(menuText),
-            "←/A, →/D or Mouse to select   |   Space/Click to drop   |   R to restart");
+            "Left/Right, A/D, or Mouse to select   |   Space/Down/Click to drop   |   R to restart");
     }
 #else
     if (gameState == STATE_GAMEOVER) {
         snprintf(menuText, sizeof(menuText), "R to restart   |   Q to quit");
     } else {
         snprintf(menuText, sizeof(menuText),
-            "←/A, →/D or Mouse to select   |   Space/Click to drop   |   R to restart   |   Q to quit");
+             "Left/Right, A/D, or Mouse to select   |   Space/Down/Click to drop   |   R to restart | Q to quit");
     }
 #endif
 
