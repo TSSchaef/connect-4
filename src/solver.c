@@ -74,7 +74,8 @@ int negamax(board_t *game, int alpha, int beta, int depth){
 int computerInput(board_t game){
     numEvaluated = 0;
     bestMove = WIDTH + 1;
-    int score = negamax(&game, ALPHA, BETA, DEPTH);
+    //int score = negamax(&game, ALPHA, BETA, DEPTH);
+    negamax(&game, ALPHA, BETA, DEPTH);
     //printf("Evaluated: %lu\nScore: %d\n", numEvaluated, score);
     printf("Evaluated %lu positions\n", numEvaluated);
     return bestMove;
